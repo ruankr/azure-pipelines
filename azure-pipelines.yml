@@ -1,0 +1,21 @@
+pool:
+  vmImage: "windows-2019"
+
+stages:
+
+  - stage: Deploy_Application
+    jobs:
+    - job: deploycodeJob
+
+      steps:
+
+      - task: DownloadPackage@1
+        displayName: 'Download Function Run Script'
+        inputs:
+          feed: '/311f6f04-c06e-4389-a94b-bfe025084382'
+          view: 'fe17d744-7098-4118-aea1-5faca5864300'
+          definition: '94fec9af-d61f-4399-a675-39113c9bc89e'
+          version: 1.0.1
+          downloadPath: '$(System.ArtifactsDirectory)'
+
+      - script: dir $(System.ArtifactsDirectory)

@@ -11,10 +11,10 @@ stages:
 
       - task: DownloadPipelineArtifact@2
         inputs:
-          buildType: 'specific'
-          project: '64c33732-5c15-495a-b6f0-b1c954c8bd02'
-          definition: 'Application Builds\alphact-api-build'
-          buildVersionToDownload: 'latest'
+          source: 'specific'
+          project: 'AlphaTaxCloud'
+          pipeline: 231
+          runVersion: 'latest'
           targetPath: '$(Pipeline.Workspace)'
 
       - task: PowerShell@2

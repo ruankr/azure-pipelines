@@ -43,12 +43,12 @@ stages:
           definition: '8d9265c2-d5d9-4417-b49b-5bc8c6bc083f'
           version: '1.1.12'
           extract: false
-          downloadPath: '$$(System.ArtifactsDirectory)/TSPipelineTasks'
+          downloadPath: '$(System.ArtifactsDirectory)/TSPipelineTasks'
 
       - task: AzurePowerShell@5
         displayName: 'Install and Load module'
         inputs:
-          azureSubscription: 'AzureSPN'
+          azureSubscription: 'AlphataxCloudSPN'
           ScriptType: 'InlineScript'
           Inline: |
             try{
@@ -117,7 +117,7 @@ stages:
       - task: AzurePowerShell@5
         displayName: 'Check If Database Exists'
         inputs:
-          azureSubscription: 'AzureSPN'
+          azureSubscription: 'AlphataxCloudSPN'
           ScriptType: 'InlineScript'
           Inline: |
             try {
@@ -134,7 +134,7 @@ stages:
         condition: and(succeeded(), ne(variables['SkpidbValue'], 'true'))
         displayName: 'Deploy Database From DacPac'
         inputs:
-          azureSubscription: 'AzureSPN'
+          azureSubscription: 'AlphataxCloudSPN'
           AuthenticationType: 'aadAuthenticationPassword'
           ServerName: '$(SQLServer)'
           DatabaseName: '$(tv_databaseName)'
@@ -149,7 +149,7 @@ stages:
       - task: AzurePowerShell@5
         displayName: 'Add Database to Elastic Pool'
         inputs:
-          azureSubscription: 'AzureSPN'
+          azureSubscription: 'AlphataxCloudSPN'
           ScriptType: 'InlineScript'
           Inline: |
             # Add to Elastic pool

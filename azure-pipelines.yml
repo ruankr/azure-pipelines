@@ -3,9 +3,9 @@ pool:
 
 stages:
 
-  - stage: Download_Artefacts
+  - stage: Download_Artifacts
     jobs:
-    - job: downloadartefact
+    - job: downloadartifact
       displayName: 'Download'
       steps:
 
@@ -18,19 +18,159 @@ stages:
           artifactName: 'alphact-customerdb-dacpac'
           targetPath: '$(Pipeline.Workspace)'
 
+      - task: PowerShell@2
+        displayName: 'Check folder contents'
+        inputs:
+          targetType: 'inline'
+          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
+          failOnStderr: true
+
   - stage: Deploy_Application
     jobs:
     - job: deploycodeJob
+      dependsOn: downloadartifact
 
       steps:
-
       - task: DownloadPackage@1
-        displayName: 'Download Function Run Script'
+        displayName: 'Download Module'
         inputs:
+          packageType: 'nuget'
           feed: '/311f6f04-c06e-4389-a94b-bfe025084382'
-          view: 'fe17d744-7098-4118-aea1-5faca5864300'
-          definition: '94fec9af-d61f-4399-a675-39113c9bc89e'
-          version: 1.0.1
-          downloadPath: '$(System.ArtifactsDirectory)'
+          view: 'e09162c6-1758-43a6-a901-3026564d1aa4'
+          definition: '8d9265c2-d5d9-4417-b49b-5bc8c6bc083f'
+          version: '1.1.12'
+          extract: false
+          downloadPath: '$$(System.ArtifactsDirectory)/TSPipelineTasks'
 
-      - script: dir $(System.ArtifactsDirectory)
+      - task: AzurePowerShell@5
+        displayName: 'Install and Load module'
+        inputs:
+          azureSubscription: 'AzureSPN'
+          ScriptType: 'InlineScript'
+          Inline: |
+            try{
+              Write-Host "##[Information] Installing module"
+                if ($null -eq (Get-PSRepository -Name "TSPipelineTasks" -ErrorAction SilentlyContinue)) { Register-psrepository -Name "TSPipelineTasks" -SourceLocation '$(System.ArtifactsDirectory)/TSPipelineTasks' }
+                if ($null -eq (Get-Module -Name TSPipelineTasks -ErrorAction SilentlyContinue)) { Install-Module TSPipelineTasks -Repository 'TSPipelineTasks' -Scope CurrentUser -Force -ErrorAction Stop }
+                Import-Module TSPipelineTasks -ErrorAction Stop -Force -Global 
+            }
+            catch {
+            Write-Host "##[Error] There was a problem loading module: $_"
+            }
+          FailOnStandardError: true
+          azurePowerShellVersion: 'LatestVersion'
+
+      - task: PowerShell@2
+        displayName: 'Create Customer SPN'
+        inputs:
+          targetType: 'inline'
+          script: |
+            try {
+            
+            Connect-ToRequiredSystem -ApplicationId $(PBiAzAdAppID) -ApplicationSecret $(PBiAzAdAppSecret) -TenantId $(PBiAzAdTenantId) -LogonSystem azure
+            
+            $spn = New-TSPowerBiAzureSPN -Environment $(Environment) -Application $(Application) -CustomerName $(CustomerName) -CustomerId $(CustomerId) -Keyvault $(Keyvault)
+            
+            }
+            Catch{
+            Write-Host ##vso[task.logissue type=error;] "Something went wrong $_"
+            }
+          failOnStderr: true
+
+      - task: PowerShell@2
+        displayName: 'Create Customer PowerBi Workspace'
+        inputs:
+          targetType: 'inline'
+          script: |
+            try{
+            Write-Host "##[section] Connect"
+            Connect-ToRequiredSystem -ApplicationId "$(PBiAzAdAppID)" -ApplicationSecret "$(PBiAzAdAppSecret)" -TenantId "$(PBiAzAdTenantId)" -LogonSystem powerbi -ErrorAction Stop
+            
+            Write-Host "##[section] Create Workspace"
+            $CurrentWorkspace = New-TSPowerBiWorkspace -Environment "$(Environment)" -Application "$(Application)" -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)" -ErrorAction Stop
+            
+            Write-Host "##[section] Assign Permissions"
+            Set-TSPowerBiWorkspacePermissions -Workspace $CurrentWorkspace -spnObjectID "$(tv_pbispnobjectid)" -TenantAdmin $(PBiAzAdmin) -ErrorAction Stop
+            
+            Write-Host "##[section] Create and assign report"
+            New-TSPowerBiWorkspaceContents -Workspace $CurrentWorkspace -SourceLocation "$(System.DefaultWorkingDirectory)/Pbi/Reports/Reports" -ErrorAction Stop
+            
+            Write-Host "##[section] Update Metadata"
+            Update-TSPowerBiWorkspaceParameters -Workspace $CurrentWorkspace -ApiUrl "$(apiUrl)" -CustomerId "$(CustomerId)" -ClientId "$(B2CClientId)" -ClientSecret "$(B2CClientSecret)" -IsCCFlow "TRUE" -IsTemplate "FALSE" -SkipUpdate -ErrorAction Stop
+            
+            Write-Host "##[section] Assign Capacity"
+            Set-TSPowerBiCapacity -Workspace $CurrentWorkspace -CapacityName "$(CapacityName)" -ErrorAction Stop
+            
+            Write-Host "##[section] Configure Reports"
+            Update-TSReportsFromTemplate -Environment "$(Environment)" -Application "$(Application)" -SourceLocation "$(System.DefaultWorkingDirectory)/Pbi/Reports/Reports" -SingleCustomer -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)"
+            
+            Write-Host "##[Information] All Workspace tasks completed..."
+            }
+            catch{
+            Write-Host ##vso[task.logissue type=error;] "Something went wrong $_"
+            }
+          failOnStderr: true
+
+      - task: AzurePowerShell@5
+        displayName: 'Check If Database Exists'
+        inputs:
+          azureSubscription: 'AzureSPN'
+          ScriptType: 'InlineScript'
+          Inline: |
+            try {
+            Assert-DatabaseExists -SQLServerAlias "$(SQLServerAlias)" -DatabaseName "$(tv_databaseName)"
+            Add-KeyVaultSecret -SecretName "$(tv_pbiappname)" -Secret "$(tv_pbiappsecret)" -Keyvault "$(Keyvault)" -Application "$(Application)" -Environment "$(Environment)" -ErrorAction Stop
+            }
+            catch {
+            Write-Host "##[Error] There was a problem running step: $_"
+            }
+          FailOnStandardError: true
+          azurePowerShellVersion: 'LatestVersion'
+
+      - task: SqlAzureDacpacDeployment@1
+        condition: and(succeeded(), ne(variables['SkpidbValue'], 'true'))
+        displayName: 'Deploy Database From DacPac'
+        inputs:
+          azureSubscription: 'AzureSPN'
+          AuthenticationType: 'aadAuthenticationPassword'
+          ServerName: '$(SQLServer)'
+          DatabaseName: '$(tv_databaseName)'
+          aadSqlUsername: '$(SQLAdmin)'
+          aadSqlPassword: '$(SQLPass)'
+          deployType: 'DacpacTask'
+          DeploymentAction: 'Publish'
+          DacpacFile: '$(Pipeline.Workspace)\alphact-customerdb-dacpac\TaxSystems.Alphatax.ApprovalPortal.Database.Tenant.dacpac'
+          AdditionalArguments: '$(SQLDeployArguments)'
+          IpDetectionMethod: 'AutoDetect'
+
+      - task: AzurePowerShell@5
+        displayName: 'Add Database to Elastic Pool'
+        inputs:
+          azureSubscription: 'AzureSPN'
+          ScriptType: 'InlineScript'
+          Inline: |
+            # Add to Elastic pool
+            
+            try{
+            Write-Host "##[Information] Adding database to Elastic Pool"
+            Set-AzSqlDatabase -ResourceGroupName $(SQLResourceGroup) -ServerName $(SQLServerAlias) -DatabaseName $(tv_databaseName) -ElasticPoolName $(PoolName) -ErrorAction Stop
+            }
+            catch{
+            throw "Could not add database to elastic pool"
+            }
+          FailOnStandardError: true
+          azurePowerShellVersion: 'LatestVersion'
+
+      - task: PowerShell@2
+        displayName: 'Setup Database Permissions'
+        inputs:
+          targetType: 'inline'
+          script: 'Update-TSDatabasePermissions -DatabaseName "$(tv_databaseName)" -SQLServerAlias "$(SQLServerAlias)" -SQLAdmin "$(SQLAdmin)" -SQLPass "$(SQLPass)" -Users $(SQLUsers) -Keyvault $(Keyvault)'
+          failOnStderr: true
+
+      - task: PowerShell@2
+        displayName: 'Send Mail Message'
+        inputs:
+          targetType: 'inline'
+          script: 'Send-TSServiceBusMessage -serviceBusNamespace "$(ServiceBusNameSpace)"  -senderKey "$(ServiceBusSenderKey)" -CustomerId "$(CustomerId)" -WorkspaceId "$(tv_pbiwsid)" -PowerBiApplicationId "$(tv_pbiappid)" -UserProfileId "$(UserProfileId)" -Status "Failed"'
+          failOnStderr: true

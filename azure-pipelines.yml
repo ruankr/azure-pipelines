@@ -35,12 +35,12 @@ stages:
           runVersion: 'latest'
           targetPath: '$(Pipeline.Workspace)\DacPac'
 
-#      - task: PowerShell@2
-#        displayName: 'Check folder contents'
-#        inputs:
-#          targetType: 'inline'
-#          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
-#          failOnStderr: true
+      - task: PowerShell@2
+        displayName: 'Check folder contents'
+        inputs:
+          targetType: 'inline'
+          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
+          failOnStderr: true
 
 
   - stage: Deploy_Tenant_DataBase
@@ -150,6 +150,13 @@ stages:
             }
           FailOnStandardError: true
           azurePowerShellVersion: 'LatestVersion'
+
+      - task: PowerShell@2
+        displayName: 'Check folder contents'
+        inputs:
+          targetType: 'inline'
+          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
+          failOnStderr: true
 
       - task: SqlAzureDacpacDeployment@1
         condition: and(succeeded(), ne(variables['SkpidbValue'], 'true'))

@@ -15,7 +15,6 @@ stages:
           project: '64c33732-5c15-495a-b6f0-b1c954c8bd02'
           definition: 'Application Builds\alphact-api-build'
           buildVersionToDownload: 'latest'
-          artifactName: 'alphact-customerdb-dacpac'
           targetPath: '$(Pipeline.Workspace)'
 
       - task: PowerShell@2

@@ -22,7 +22,7 @@ stages:
           pipeline: 231
           artifactName: 'Reports'
           runVersion: 'latest'
-          targetPath: '$(Pipeline.Workspace)'
+          targetPath: '$(Pipeline.Workspace)\Reports'
 
       - task: DownloadPipelineArtifact@2
         displayName: 'Download DacPac'
@@ -32,7 +32,7 @@ stages:
           pipeline: 240
           artifactName: 'alphact-customerdb-dacpac'
           runVersion: 'latest'
-          targetPath: '$(Pipeline.Workspace)'
+          targetPath: '$(Pipeline.Workspace)\DacPac'
 
       - task: PowerShell@2
         displayName: 'Check folder contents'
@@ -46,7 +46,7 @@ stages:
     dependsOn: Download_Artifacts
     variables:
     - group: "PowerBi Specifics"
-    - group: "TS-LocalRnD-SQL-VarGroup"
+    - group: "dev-rnd-ukw-sql-VarGroup"
 
     jobs:
     - job: deploycodeJob
@@ -160,7 +160,7 @@ stages:
           aadSqlPassword: '$(SQLPass)'
           deployType: 'DacpacTask'
           DeploymentAction: 'Publish'
-          DacpacFile: '$(Pipeline.Workspace)\alphact-customerdb-dacpac\TaxSystems.Alphatax.ApprovalPortal.Database.Tenant.dacpac'
+          DacpacFile: '$(Pipeline.Workspace)\DacPac\TaxSystems.Alphatax.ApprovalPortal.Database.Tenant.dacpac'
           AdditionalArguments: '$(SQLDeployArguments)'
           IpDetectionMethod: 'AutoDetect'
 

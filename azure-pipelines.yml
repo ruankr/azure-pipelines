@@ -26,6 +26,10 @@ stages:
           failOnStderr: true
 
   - stage: Deploy_Application
+    variables:
+    - group: "PowerBi Specifics"
+    - group: "TS-LocalRnD-SQL-VarGroup"
+
     jobs:
     - job: deploycodeJob
       dependsOn: downloadartifact

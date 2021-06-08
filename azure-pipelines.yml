@@ -1,3 +1,8 @@
+#resources:
+#  repositories:
+#  - repository: terraform
+#    type: github
+
 pool:
   vmImage: "windows-2019"
 
@@ -10,10 +15,22 @@ stages:
       steps:
 
       - task: DownloadPipelineArtifact@2
+        displayName: 'Download Reports'
         inputs:
           source: 'specific'
           project: 'AlphaTaxCloud'
           pipeline: 231
+          artifactName: 'Reports'
+          runVersion: 'latest'
+          targetPath: '$(Pipeline.Workspace)'
+
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download DacPac'
+        inputs:
+          source: 'specific'
+          project: 'AlphaTaxCloud'
+          pipeline: 240
+          artifactName: 'alphact-customerdb-dacpac'
           runVersion: 'latest'
           targetPath: '$(Pipeline.Workspace)'
 
@@ -23,6 +40,7 @@ stages:
           targetType: 'inline'
           script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
           failOnStderr: true
+
 
   - stage: Deploy_Application
     dependsOn: Download_Artifacts
@@ -96,7 +114,7 @@ stages:
             Set-TSPowerBiWorkspacePermissions -Workspace $CurrentWorkspace -spnObjectID "$(tv_pbispnobjectid)" -TenantAdmin $(PBiAzAdmin) -ErrorAction Stop
             
             Write-Host "##[section] Create and assign report"
-            New-TSPowerBiWorkspaceContents -Workspace $CurrentWorkspace -SourceLocation "$(System.DefaultWorkingDirectory)/Pbi/Reports/Reports" -ErrorAction Stop
+            New-TSPowerBiWorkspaceContents -Workspace $CurrentWorkspace -SourceLocation "$(Pipeline.Workspace)\Reports" -ErrorAction Stop
             
             Write-Host "##[section] Update Metadata"
             Update-TSPowerBiWorkspaceParameters -Workspace $CurrentWorkspace -ApiUrl "$(apiUrl)" -CustomerId "$(CustomerId)" -ClientId "$(B2CClientId)" -ClientSecret "$(B2CClientSecret)" -IsCCFlow "TRUE" -IsTemplate "FALSE" -SkipUpdate -ErrorAction Stop
@@ -105,7 +123,7 @@ stages:
             Set-TSPowerBiCapacity -Workspace $CurrentWorkspace -CapacityName "$(CapacityName)" -ErrorAction Stop
             
             Write-Host "##[section] Configure Reports"
-            Update-TSReportsFromTemplate -Environment "$(Environment)" -Application "$(Application)" -SourceLocation "$(System.DefaultWorkingDirectory)/Pbi/Reports/Reports" -SingleCustomer -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)"
+            Update-TSReportsFromTemplate -Environment "$(Environment)" -Application "$(Application)" -SourceLocation "$(Pipeline.Workspace)\Reports" -SingleCustomer -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)"
             
             Write-Host "##[Information] All Workspace tasks completed..."
             }

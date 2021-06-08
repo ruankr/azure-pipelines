@@ -9,6 +9,7 @@ pool:
 stages:
 
   - stage: Download_Artifacts
+    displayName: 'Download Artifacts'
     jobs:
     - job: downloadartifact
       displayName: 'Download'
@@ -34,15 +35,16 @@ stages:
           runVersion: 'latest'
           targetPath: '$(Pipeline.Workspace)\DacPac'
 
-      - task: PowerShell@2
-        displayName: 'Check folder contents'
-        inputs:
-          targetType: 'inline'
-          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
-          failOnStderr: true
+#      - task: PowerShell@2
+#        displayName: 'Check folder contents'
+#        inputs:
+#          targetType: 'inline'
+#          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
+#          failOnStderr: true
 
 
-  - stage: Deploy_Application
+  - stage: Deploy_Tenant_DataBase
+    displayName: 'Deploy Tenant Database'
     dependsOn: Download_Artifacts
     variables:
     - group: "PowerBi Specifics"
@@ -50,6 +52,7 @@ stages:
 
     jobs:
     - job: deploycodeJob
+      displayName: 'Tenant Creation'
 
       steps:
       - task: DownloadPackage@1

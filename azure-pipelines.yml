@@ -68,6 +68,7 @@ stages:
       steps:
 
       - download: current
+        displayName: 'Download Stage Files'
         artifact: Files
 
       - task: PowerShell@2
@@ -85,7 +86,7 @@ stages:
           Inline: |
             try{
               Write-Host "##[Information] Installing module"
-                if ($null -eq (Get-PSRepository -Name "TSPipelineTasks" -ErrorAction SilentlyContinue)) { Register-psrepository -Name "TSPipelineTasks" -SourceLocation '$(Agent.BuildDirectory)/TSPipelineTasks' }
+                if ($null -eq (Get-PSRepository -Name "TSPipelineTasks" -ErrorAction SilentlyContinue)) { Register-psrepository -Name "TSPipelineTasks" -SourceLocation '$(Agent.BuildDirectory)/Files/TSPipelineTasks' }
                 if ($null -eq (Get-Module -Name TSPipelineTasks -ErrorAction SilentlyContinue)) { Install-Module TSPipelineTasks -Repository 'TSPipelineTasks' -Scope CurrentUser -Force -ErrorAction Stop }
                 Import-Module TSPipelineTasks -ErrorAction Stop -Force -Global 
             }
@@ -128,7 +129,7 @@ stages:
             Set-TSPowerBiWorkspacePermissions -Workspace $CurrentWorkspace -spnObjectID "$(tv_pbispnobjectid)" -TenantAdmin $(PBiAzAdmin) -ErrorAction Stop
             
             Write-Host "##[section] Create and assign report"
-            New-TSPowerBiWorkspaceContents -Workspace $CurrentWorkspace -SourceLocation "$(Agent.BuildDirectory)\Reports" -ErrorAction Stop
+            New-TSPowerBiWorkspaceContents -Workspace $CurrentWorkspace -SourceLocation "$(Agent.BuildDirectory)\Files\Reports" -ErrorAction Stop
             
             Write-Host "##[section] Update Metadata"
             Update-TSPowerBiWorkspaceParameters -Workspace $CurrentWorkspace -ApiUrl "$(apiUrl)" -CustomerId "$(CustomerId)" -ClientId "$(B2CClientId)" -ClientSecret "$(B2CClientSecret)" -IsCCFlow "TRUE" -IsTemplate "FALSE" -SkipUpdate -ErrorAction Stop
@@ -137,7 +138,7 @@ stages:
             Set-TSPowerBiCapacity -Workspace $CurrentWorkspace -CapacityName "$(CapacityName)" -ErrorAction Stop
             
             Write-Host "##[section] Configure Reports"
-            Update-TSReportsFromTemplate -Environment "$(Environment)" -Application "$(Application)" -SourceLocation "$(Agent.BuildDirectory)\Reports" -SingleCustomer -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)"
+            Update-TSReportsFromTemplate -Environment "$(Environment)" -Application "$(Application)" -SourceLocation "$(Agent.BuildDirectory)\Files\Reports" -SingleCustomer -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)"
             
             Write-Host "##[Information] All Workspace tasks completed..."
             }
@@ -174,7 +175,7 @@ stages:
           aadSqlPassword: '$(SQLPass)'
           deployType: 'DacpacTask'
           DeploymentAction: 'Publish'
-          DacpacFile: '$(Agent.BuildDirectory)\DacPac\TaxSystems.Alphatax.ApprovalPortal.Database.Tenant.dacpac'
+          DacpacFile: '$(Agent.BuildDirectory)\Files\DacPac\TaxSystems.Alphatax.ApprovalPortal.Database.Tenant.dacpac'
           AdditionalArguments: '$(SQLDeployArguments)'
           IpDetectionMethod: 'AutoDetect'
 

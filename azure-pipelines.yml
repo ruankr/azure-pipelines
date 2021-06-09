@@ -80,7 +80,7 @@ stages:
       - task: AzurePowerShell@5
         displayName: 'Install and Load module'
         inputs:
-          azureSubscription: 'AlphataxCloudSPN'
+          azureSubscription: 'Tax Systems Dev Sub'
           ScriptType: 'InlineScript'
           Inline: |
             try{
@@ -149,7 +149,7 @@ stages:
       - task: AzurePowerShell@5
         displayName: 'Check If Database Exists'
         inputs:
-          azureSubscription: 'AlphataxCloudSPN'
+          azureSubscription: 'Tax Systems Dev Sub'
           ScriptType: 'InlineScript'
           Inline: |
             try {
@@ -173,7 +173,7 @@ stages:
         condition: and(succeeded(), ne(variables['SkpidbValue'], 'true'))
         displayName: 'Deploy Database From DacPac'
         inputs:
-          azureSubscription: 'AlphataxCloudSPN'
+          azureSubscription: 'Tax Systems Dev Sub'
           AuthenticationType: 'aadAuthenticationPassword'
           ServerName: '$(SQLServer)'
           DatabaseName: '$(tv_databaseName)'
@@ -188,7 +188,7 @@ stages:
       - task: AzurePowerShell@5
         displayName: 'Add Database to Elastic Pool'
         inputs:
-          azureSubscription: 'AlphataxCloudSPN'
+          azureSubscription: 'Tax Systems Dev Sub'
           ScriptType: 'InlineScript'
           Inline: |
             # Add to Elastic pool

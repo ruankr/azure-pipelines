@@ -35,11 +35,31 @@ stages:
           runVersion: 'latest'
           targetPath: '$(Pipeline.Workspace)\DacPac'
 
+      - task: DownloadPackage@1
+        displayName: 'Download Module'
+        inputs:
+          packageType: 'nuget'
+          feed: '/311f6f04-c06e-4389-a94b-bfe025084382'
+          view: 'e09162c6-1758-43a6-a901-3026564d1aa4'
+          definition: '8d9265c2-d5d9-4417-b49b-5bc8c6bc083f'
+          version: '1.1.12'
+          extract: false
+          downloadPath: '$(Pipeline.Workspace)\TSPipelineTasks'
+
+      - task: CopyFiles@2
+        displayName: 'Copy Files to static Directory'
+        inputs:
+          SourceFolder: '$(Pipeline.Workspace)'
+          Contents: '**'
+          TargetFolder: '$(System.ArtifactsDirectory)'
+          CleanTargetFolder: true
+          OverWrite: true
+
       - task: PowerShell@2
         displayName: 'Check folder contents'
         inputs:
           targetType: 'inline'
-          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
+          script: 'Get-Childitem -Path $(System.ArtifactsDirectory) -Recurse'
           failOnStderr: true
 
 
@@ -55,16 +75,7 @@ stages:
       displayName: 'Tenant Creation'
 
       steps:
-      - task: DownloadPackage@1
-        displayName: 'Download Module'
-        inputs:
-          packageType: 'nuget'
-          feed: '/311f6f04-c06e-4389-a94b-bfe025084382'
-          view: 'e09162c6-1758-43a6-a901-3026564d1aa4'
-          definition: '8d9265c2-d5d9-4417-b49b-5bc8c6bc083f'
-          version: '1.1.12'
-          extract: false
-          downloadPath: '$(System.ArtifactsDirectory)/TSPipelineTasks'
+
 
       - task: AzurePowerShell@5
         displayName: 'Install and Load module'
@@ -117,7 +128,7 @@ stages:
             Set-TSPowerBiWorkspacePermissions -Workspace $CurrentWorkspace -spnObjectID "$(tv_pbispnobjectid)" -TenantAdmin $(PBiAzAdmin) -ErrorAction Stop
             
             Write-Host "##[section] Create and assign report"
-            New-TSPowerBiWorkspaceContents -Workspace $CurrentWorkspace -SourceLocation "$(Pipeline.Workspace)\Reports" -ErrorAction Stop
+            New-TSPowerBiWorkspaceContents -Workspace $CurrentWorkspace -SourceLocation "$(System.ArtifactsDirectory)\Reports" -ErrorAction Stop
             
             Write-Host "##[section] Update Metadata"
             Update-TSPowerBiWorkspaceParameters -Workspace $CurrentWorkspace -ApiUrl "$(apiUrl)" -CustomerId "$(CustomerId)" -ClientId "$(B2CClientId)" -ClientSecret "$(B2CClientSecret)" -IsCCFlow "TRUE" -IsTemplate "FALSE" -SkipUpdate -ErrorAction Stop
@@ -126,7 +137,7 @@ stages:
             Set-TSPowerBiCapacity -Workspace $CurrentWorkspace -CapacityName "$(CapacityName)" -ErrorAction Stop
             
             Write-Host "##[section] Configure Reports"
-            Update-TSReportsFromTemplate -Environment "$(Environment)" -Application "$(Application)" -SourceLocation "$(Pipeline.Workspace)\Reports" -SingleCustomer -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)"
+            Update-TSReportsFromTemplate -Environment "$(Environment)" -Application "$(Application)" -SourceLocation "$(System.ArtifactsDirectory)\Reports" -SingleCustomer -CustomerName "$(CustomerName)" -CustomerId "$(CustomerId)"
             
             Write-Host "##[Information] All Workspace tasks completed..."
             }
@@ -155,7 +166,7 @@ stages:
         displayName: 'Check folder contents'
         inputs:
           targetType: 'inline'
-          script: 'Get-Childitem -Path $(Pipeline.Workspace) -Recurse'
+          script: 'Get-Childitem -Path $(System.ArtifactsDirectory) -Recurse'
           failOnStderr: true
 
       - task: SqlAzureDacpacDeployment@1
@@ -170,7 +181,7 @@ stages:
           aadSqlPassword: '$(SQLPass)'
           deployType: 'DacpacTask'
           DeploymentAction: 'Publish'
-          DacpacFile: '$(Pipeline.Workspace)\DacPac\TaxSystems.Alphatax.ApprovalPortal.Database.Tenant.dacpac'
+          DacpacFile: '$(System.ArtifactsDirectory)\DacPac\TaxSystems.Alphatax.ApprovalPortal.Database.Tenant.dacpac'
           AdditionalArguments: '$(SQLDeployArguments)'
           IpDetectionMethod: 'AutoDetect'
 

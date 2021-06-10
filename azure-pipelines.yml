@@ -42,7 +42,7 @@ stages:
           feed: '/311f6f04-c06e-4389-a94b-bfe025084382'
           view: 'e09162c6-1758-43a6-a901-3026564d1aa4'
           definition: '8d9265c2-d5d9-4417-b49b-5bc8c6bc083f'
-          version: '1.1.12'
+          version: $(psmoduleVersion)
           extract: false
           downloadPath: '$(Pipeline.Workspace)\TSPipelineTasks'
 

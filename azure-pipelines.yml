@@ -59,7 +59,7 @@ stages:
     dependsOn: Download_Artifacts
     variables:
     - group: "PowerBi Specifics"
-    - group: "dev-rnd-ukw-sql-VarGroup"
+    - group: $(SQLVarGroup)
 
     jobs:
     - job: deploycodeJob

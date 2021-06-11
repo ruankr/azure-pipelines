@@ -54,7 +54,7 @@ stages:
           publishLocation: 'pipeline'
 
   - stage: Dev_Provision_Tenant
-    displayName: 'Dev - Provision Tenant'
+    displayName: 'Dev-Alphatax360 - Provision Tenant'
     dependsOn: Download_Artifacts
     variables:
     - group: "PowerBi Specifics"
@@ -62,8 +62,8 @@ stages:
 
     jobs:
       - deployment: devtenantcreate
-        displayName: 'Dev - Tenant Creation'
-        environment: Dev
+        displayName: 'Dev-Alphatax360 - Tenant Creation'
+        environment: Dev-Alphatax360
         strategy: 
             runOnce:
                 deploy:

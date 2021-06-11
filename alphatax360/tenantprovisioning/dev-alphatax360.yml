@@ -59,6 +59,7 @@ stages:
     variables:
     - group: "PowerBi Specifics"
     - group: "dev-rnd-ukw-sqls-VarGroup"
+    - group: "Alphatax360 dev Cloud Specifics"
 
     jobs:
       - deployment: devtenantcreate
